@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(E:/miniconda3/python.exe:*)",
+      "Bash(findstr:*)"
+    ]
+  }
+}
