@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
+from RotaryEmbedding import RotaryEmbedding
 
 class MultiLatentAttention(nn.Module):
     def __init__(self, d_model, num_heads, d_head, d_latent, d_rope, dropout_p):
@@ -22,6 +23,9 @@ class MultiLatentAttention(nn.Module):
         self.q_up_proj = nn.Linear(d_latent,num_heads * (d_head + d_rope), bias=False)
         # 3. output projection
         self.o_proj = nn.Linear(num_heads * d_head, d_model, bias=False)
+
+        # 4. RoPE
+        self.rope = RotaryEmbedding(d_rope)
         
     def forward(self, x , mask= None):
         batch_size, seq_len, _ = x.size()
@@ -45,7 +49,7 @@ class MultiLatentAttention(nn.Module):
         q_content, q_rope = torch.split(q_full, [self.d_head, self.d_rope], dim=-1)
         
         # Apply RoPE to q_rope and k_rope
-        q_rope, k_rope = self.apply_rope(q_rope, k_rope)
+        q_rope, k_rope = self.rope(q_rope, k_rope)
         
         # Combine content and rope parts
         q = torch.cat([q_content, q_rope], dim=-1)  # (batch_size, seq_len, num_heads, d_head + d_rope)

@@ -1,4 +1,5 @@
 import math
+import torch
 
 
 def softmax(logits):
@@ -31,13 +32,13 @@ def cross_entropy_loss(logits, targets):
     targets: Tensor of shape (batch_size) with class indices
     """
     # 1. Compute log softmax
-    log_softmax = log_softmax(logits) # log_softmax: Tensor of shape (batch_size, num_classes)
-    
+    log_probs = log_softmax(logits) # log_probs: Tensor of shape (batch_size, num_classes)
+
     # 2. Negative log likelihood loss
     batch_size = logits.size(0)
     batch_indices = torch.arange(batch_size)
-    
-    loss = -log_softmax[batch_indices, targets] # loss: Tensor of shape (batch_size,)
+
+    loss = -log_probs[batch_indices, targets] # loss: Tensor of shape (batch_size,)
     
     return loss.mean()
 

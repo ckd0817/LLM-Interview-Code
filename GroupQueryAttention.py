@@ -14,8 +14,8 @@ class GroupQueryAttention(nn.Module):
         assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
         assert num_heads % num_kv_heads == 0, "num_heads must be divisible by num_kv_heads"
 
-        self.d_head = d_model % num_heads
-        self.num_rep = num_heads % num_kv_heads
+        self.d_head = d_model // num_heads
+        self.num_rep = num_heads // num_kv_heads
 
 
         self.w_q = nn.Linear(d_model, num_heads * self.d_head, bias=False)
@@ -41,8 +41,8 @@ class GroupQueryAttention(nn.Module):
         x = x.expand(batch, num_kv_heads, n_rep, seq_len, d_heads)
         
         # 3. 展平num_kv_heads和n_rep: [Batch, num_kv_heads * n_rep, seq_len, d_head]
-        x.reshape(batch,num_kv_heads * n_rep,seq_len,d_heads)
-        
+        x = x.reshape(batch, num_kv_heads * n_rep, seq_len, d_heads)
+
         return x
     
     def forward(self, x, mask = None):
