@@ -662,6 +662,33 @@ $$\mathcal{L}_{PPO} = \mathbb{E}\left[\min\left(r_t(\theta) \hat{A}_t, \text{cli
 - 在组内计算相对优势（而非绝对优势）
 - 无需训练 Critic 网络，简化训练流程
 
+#### 核心公式
+
+**1. 组内相对优势（Group-Relative Advantage）**
+
+对同一问题生成 $G$ 个回答，计算每个回答的奖励 $r_1, r_2, ..., r_G$，然后计算组内标准化优势：
+
+$$\hat{A}_i = \frac{r_i - \text{mean}(\mathbf{r})}{\text{std}(\mathbf{r})}$$
+
+**2. GRPO 损失函数**
+
+$$\mathcal{L}_{GRPO} = -\mathbb{E}\left[\frac{1}{G}\sum_{i=1}^{G} \min\left(\rho_i \hat{A}_i, \text{clip}(\rho_i, 1-\epsilon, 1+\epsilon)\hat{A}_i\right) - \beta \cdot \mathbb{D}_{KL}\right]$$
+
+其中：
+- $\rho_i = \frac{\pi_\theta(o_i|q)}{\pi_{\theta_{old}}(o_i|q)}$（重要性采样比率）
+- $\hat{A}_i$：组内相对优势
+- $\beta$：KL 散度惩罚系数
+- $\mathbb{D}_{KL}$：策略与参考策略的 KL 散度
+
+#### 与 PPO 的区别
+
+| 特性 | PPO | GRPO |
+|------|-----|------|
+| 优势估计 | 需要 Critic 网络 | 组内相对优势 |
+| 额外网络 | 需要 Value Head | 不需要 |
+| 内存占用 | 较高 | 较低 |
+| 适用场景 | 通用 RL | 多候选生成场景 |
+
 ---
 
 ## 参数高效微调
@@ -746,27 +773,3 @@ $$h = W_0 x + \Delta W x = W_0 x + BAx$$
 - [LoRA: Low-Rank Adaptation](https://arxiv.org/abs/2106.09685)
 
 ---
-
-## License
-
-[MIT License](LICENSE)
-
-Copyright (c) 2025
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
