@@ -369,12 +369,19 @@ $$\text{RMSNorm}(x) = \gamma \cdot \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^{d} x_i^
 对于位置 $m$ 的向量 $x$，RoPE 将其旋转：
 
 $$
-\begin{bmatrix} x_1' \\ x_2' \end{bmatrix} =
+\begin{bmatrix}
+x_1' \\
+x_2'
+\end{bmatrix}
+=
 \begin{bmatrix}
 \cos(m\theta) & -\sin(m\theta) \\
 \sin(m\theta) & \cos(m\theta)
 \end{bmatrix}
-\begin{bmatrix} x_1 \\ x_2 \end{bmatrix}
+\begin{bmatrix}
+x_1 \\
+x_2
+\end{bmatrix}
 $$
 
 其中 $\theta_i = 10000^{-2i/d}$
