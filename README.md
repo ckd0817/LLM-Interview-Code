@@ -92,6 +92,7 @@ LLM-Interview-Code/
 │   └── EntropyLoss.py
 ├── peft/                          # 参数高效微调
 │   └── LoRALinear.py
+├── pytorch_tensor_reshape.ipynb   # PyTorch 张量操作教程
 └── README.md
 ```
 
