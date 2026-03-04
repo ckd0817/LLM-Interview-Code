@@ -108,6 +108,6 @@ if __name__ == "__main__":
     # batch_size=2, seq_len=10, d_model=64, num_heads=8
     x = torch.randn(2, 10, 64)
     mha = MultiHeadAttention(d_model=64, num_heads=8)
-    out = mha(x, x, x)  # Self-Attention
+    out = mha(x, x)  # Self-Attention: x_query=x, x_context=x
     print(f"Input shape: {x.shape}")
     print(f"Output shape: {out.shape}")  # 应该还是 (2, 10, 64)

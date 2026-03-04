@@ -11,7 +11,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import math
-from RotaryEmbedding import RotaryEmbedding
+import sys
+import os
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from position.RotaryEmbedding import RotaryEmbedding
 
 
 class MultiLatentAttention(nn.Module):
