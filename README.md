@@ -120,9 +120,9 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)
 #### 张量形状流程图
 
 ```
-Q: [batch, num_heads, seq_len, d_head]
-K: [batch, num_heads, seq_len, d_head]
-V: [batch, num_heads, seq_len, d_head]
+输入:    Q: [batch, num_heads, seq_len, d_head]
+         K: [batch, num_heads, seq_len, d_head]
+         V: [batch, num_heads, seq_len, d_head]
                           │
                           ▼
               scores = Q @ K^T / sqrt(d_head)
@@ -140,7 +140,7 @@ V: [batch, num_heads, seq_len, d_head]
             [batch, num_heads, seq_len, d_head]
                           │
                           ▼
-输出: [batch, num_heads, seq_len, d_head]
+输出:       [batch, num_heads, seq_len, d_head]
 ```
 
 ---
@@ -162,7 +162,7 @@ $$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W^
 #### 张量形状流程图
 
 ```
-输入 x: [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, d_model]
                           │
     ┌─────────────────────┼─────────────────────────┐
     ▼                     ▼                         ▼
@@ -196,7 +196,7 @@ $$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W^
                    W_o (output projection)
                           │
                           ▼
-输出: [batch, seq_len, d_model]
+输出:          [batch, seq_len, d_model]
 ```
 
 ---
@@ -228,7 +228,7 @@ V_expanded = repeat(V, num_heads // num_kv_heads)
 #### 张量形状流程图
 
 ```
-输入 x: [batch, seq_len, d_model]
+输入 x:                       [batch, seq_len, d_model]
                                         │
         ┌───────────────────────────────┼───────────────────────────────────┐
         ▼                               ▼                                   ▼
@@ -252,7 +252,7 @@ V_expanded = repeat(V, num_heads // num_kv_heads)
                                     Attention
                                         │
                                         ▼
-输出: [batch, seq_len, d_model]
+输出:                         [batch, seq_len, d_model]
 ```
 
 ---
@@ -281,7 +281,7 @@ $$[k_{t}, v_{t}] = W_{UKV} \cdot c_{KV}$$
 #### 张量形状流程图
 
 ```
-输入 x: [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, d_model]
                           │
         ┌─────────────────┴─────────────────┐
         ▼                                   ▼
@@ -304,7 +304,7 @@ $$[k_{t}, v_{t}] = W_{UKV} \cdot c_{KV}$$
                     RoPE + Attention
                           │
                           ▼
-输出: [batch, seq_len, d_model]
+输出:          [batch, seq_len, d_model]
 ```
 
 ---
@@ -329,22 +329,28 @@ $$\text{LN}(x) = \gamma \cdot \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta
 #### 张量形状流程图
 
 ```
-输入 x: [batch, seq_len, d_model]
-         │
-         ▼
-    mean(x, dim=-1)
-         │        : [batch, seq_len, 1]
-         ▼
-    var(x, dim=-1)
-         │        : [batch, seq_len, 1]
-         ▼
-  (x - mean) / sqrt(var + eps)
-         │        : [batch, seq_len, d_model]
-         ▼
-    x * gamma + beta
-         │
-         ▼
-输出: [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, d_model]
+                          │
+                          ▼
+                   mean(x, dim=-1)
+                          │
+                [batch, seq_len, 1]
+                          │
+                          ▼
+                   var(x, dim=-1)
+                          │
+                [batch, seq_len, 1]
+                          │
+                          ▼
+          (x - mean) / sqrt(var + eps)
+                          │
+             [batch, seq_len, d_model]
+                          │
+                          ▼
+                  x * gamma + beta
+                          │
+                          ▼
+输出:          [batch, seq_len, d_model]
 ```
 
 ---
@@ -367,19 +373,21 @@ $$\text{RMSNorm}(x) = \gamma \cdot \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^{d} x_i^
 #### 张量形状流程图
 
 ```
-输入 x: [batch, seq_len, d_model]
-         │
-         ▼
-  rms = sqrt(mean(x^2, dim=-1) + eps)
-         │        : [batch, seq_len, 1]
-         ▼
-      x / rms
-         │        : [batch, seq_len, d_model]
-         ▼
-     x * gamma
-         │
-         ▼
-输出: [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, d_model]
+                          │
+                          ▼
+          rms = sqrt(mean(x^2, dim=-1) + eps)
+             [batch, seq_len, 1]
+                          │
+                          ▼
+                       x / rms
+             [batch, seq_len, d_model]
+                          │
+                          ▼
+                     x * gamma
+                          │
+                          ▼
+输出:          [batch, seq_len, d_model]
 ```
 
 ---
@@ -434,21 +442,22 @@ x' = x * cos + rotate_half(x) * sin
 
 ```
 输入 Q, K: [batch, seq_len, num_heads, d_head]
-         │
-         ▼
-预计算 cos, sin: [max_seq_len, d_head]
-         │
-         ▼
-取当前序列长度: cos[:seq_len], sin[:seq_len]
-         │        : [1, seq_len, 1, d_head]
-         ▼
-rotate_half(Q) = [-Q后半, Q前半]
-         │
-         ▼
-Q_rotated = Q * cos + rotate_half(Q) * sin
-K_rotated = K * cos + rotate_half(K) * sin
-         │
-         ▼
+                          │
+                          ▼
+             预计算 cos, sin: [max_seq_len, d_head]
+                          │
+                          ▼
+          取当前序列长度: cos[:seq_len], sin[:seq_len]
+             [1, seq_len, 1, d_head]
+                          │
+                          ▼
+              rotate_half(Q) = [-Q后半, Q前半]
+                          │
+                          ▼
+          Q_rotated = Q * cos + rotate_half(Q) * sin
+          K_rotated = K * cos + rotate_half(K) * sin
+                          │
+                          ▼
 输出: [batch, seq_len, num_heads, d_head]
 ```
 
@@ -471,19 +480,21 @@ $$\text{FFN}(x) = W_2 \cdot \text{ReLU}(W_1 x)$$
 #### 张量形状流程图
 
 ```
-输入 x: [batch, seq_len, d_model]
-         │
-         ▼
-      W_1 (up projection)
-         │        : [batch, seq_len, 4*d_model]
-         ▼
-       ReLU
-         │
-         ▼
-      W_2 (down projection)
-         │
-         ▼
-输出: [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, d_model]
+                          │
+                          ▼
+                  W_1 (up projection)
+                          │
+             [batch, seq_len, 4*d_model]
+                          │
+                          ▼
+                        ReLU
+                          │
+                          ▼
+                W_2 (down projection)
+                          │
+                          ▼
+输出:          [batch, seq_len, d_model]
 ```
 
 ---
@@ -507,27 +518,30 @@ $$\text{SwiGLU}(x) = (W_{gate}(x) \odot \text{SiLU}(W_{up}(x))) \cdot W_{down}$$
 #### 张量形状流程图
 
 ```
-输入 x: [batch, seq_len, d_model]
-         │
-    ┌────┴────┐
-    ▼         ▼
-  W_gate    W_up
-    │         │
-    ▼         ▼
-  gate      up      : [batch, seq_len, intermediate_dim]
-    │         │
-    ▼         │
-  SiLU       │
-    │         │
-    └────┬────┘
-         ▼
-     gate * up    ← 门控乘法
-         │        : [batch, seq_len, intermediate_dim]
-         ▼
-      W_down
-         │
-         ▼
-输出: [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, d_model]
+                          │
+        ┌─────────────────┴─────────────────┐
+        ▼                                   ▼
+     W_gate                               W_up
+        │                                   │
+        ▼                                   ▼
+     gate                                 up
+        │                                   │
+        │         [batch, seq_len, intermediate_dim]
+        ▼                                   │
+     SiLU                                  │
+        │                                   │
+        └─────────────────┬─────────────────┘
+                          ▼
+                    gate * up    ← 门控乘法
+                          │
+            [batch, seq_len, intermediate_dim]
+                          │
+                          ▼
+                       W_down
+                          │
+                          ▼
+输出:          [batch, seq_len, d_model]
 ```
 
 ---
@@ -552,35 +566,35 @@ $$\text{MoE}(x) = \sum_{i \in \text{TopK}} \text{softmax}(\text{router}(x))_i \c
 #### 张量形状流程图
 
 ```
-输入 x: [batch, seq_len, d_model]
-         │
-         ▼
-    flatten: [batch*seq_len, d_model]
-         │
-    ┌────┴────┐
-    ▼         ▼
-  Router   Experts (E_1, ..., E_N)
-    │         │
-    ▼         │
-[B*S, N]      │
-    │         │
-    ▼         │
-  Top-K       │
-    │         │
-    ▼         │
-  softmax     │
-    │         │
-    │    ┌────┴────┐
-    │    ▼         ▼
-    │  mask    expert_output
-    │    │         │
-    └────┴─────────┘
-         │
-         ▼
-   weighted sum (按路由权重累加)
-         │
-         ▼
-reshape: [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, d_model]
+                          │
+                          ▼
+            flatten: [batch*seq_len, d_model]
+                          │
+        ┌─────────────────┴─────────────────┐
+        ▼                                   ▼
+     Router                         Experts (E_1, ..., E_N)
+        │                                   │
+        ▼                                   │
+   [batch*seq_len, num_experts]             │
+        │                                   │
+        ▼                                   │
+      Top-K                                 │
+        │                                   │
+        ▼                                   │
+     softmax                                │
+        │                                   │
+        │               ┌───────────────────┴───────────────────┐
+        │               ▼                                       ▼
+        │             mask                                 expert_output
+        │               │                                       │
+        └───────────────┴───────────────────────────────────────┘
+                          │
+                          ▼
+                weighted sum (按路由权重累加)
+                          │
+                          ▼
+输出     reshape: [batch, seq_len, d_model]
 ```
 
 ---
@@ -604,32 +618,31 @@ $$\mathcal{L}_{SFT} = -\sum_{t=p}^{T} \log P(y_t | x, y_{<t})$$
 #### 张量形状流程图
 
 ```
-logits: [batch, seq_len, vocab_size]
-labels: [batch, seq_len]
-prompt_lengths: [batch]
-
-         │
-         ▼
-┌─────────────────────────┐
-│ 构造 masked_labels      │
-│ prompt 部分设为 -100    │
-└─────────────────────────┘
-         │
-         ▼
-┌─────────────────────────┐
-│ Shift (自回归预测)      │
-│ logits[:, :-1]          │
-│ labels[:, 1:]           │
-└─────────────────────────┘
-         │
-         ▼
-┌─────────────────────────┐
-│ Flatten + CrossEntropy  │
-│ ignore_index = -100     │
-└─────────────────────────┘
-         │
-         ▼
-      loss: scalar
+         logits: [batch, seq_len, vocab_size]
+         labels: [batch, seq_len]
+         prompt_lengths: [batch]
+                          │
+                          ▼
+            ┌───────────────────────────┐
+            │  构造 masked_labels       │
+            │  prompt 部分设为 -100     │
+            └───────────────────────────┘
+                          │
+                          ▼
+            ┌───────────────────────────┐
+            │  Shift (自回归预测)        │
+            │  logits[:, :-1]           │
+            │  labels[:, 1:]            │
+            └───────────────────────────┘
+                          │
+                          ▼
+            ┌───────────────────────────┐
+            │  Flatten + CrossEntropy  │
+            │  ignore_index = -100     │
+            └───────────────────────────┘
+                          │
+                          ▼
+                    loss: scalar
 ```
 
 ---
@@ -750,28 +763,28 @@ $$h = W_0 x + \Delta W x = W_0 x + BAx$$
 
 ```
 输入 x: [batch, seq_len, in_features]
-         │
-    ┌────┴────────┐
-    ▼             ▼
-  W_0          LoRA分支
-  (frozen)        │
-    │             ▼
-    │         Dropout
-    │             │
-    │             ▼
-    │         lora_A: [in_features, rank]
-    │             │
-    │             ▼
-    │         lora_B: [rank, out_features]
-    │             │
-    │             ▼
-    │         * scaling (α/r)
-    │             │
-    ▼             ▼
-  W_0@x   +   B@A@x
-    │             │
-    └──────┬──────┘
-           ▼
+                          │
+        ┌─────────────────┴─────────────────┐
+        ▼                                   ▼
+      W_0                               LoRA分支
+   (frozen)                                  │
+        │                                   ▼
+        │                               Dropout
+        │                                   │
+        │                                   ▼
+        │                           lora_A: [in_features, rank]
+        │                                   │
+        │                                   ▼
+        │                           lora_B: [rank, out_features]
+        │                                   │
+        │                                   ▼
+        │                           * scaling (α/r)
+        │                                   │
+        ▼                                   ▼
+     W_0@x                 +              B@A@x
+        │                                   │
+        └─────────────────┬─────────────────┘
+                          ▼
 输出: [batch, seq_len, out_features]
 ```
 
