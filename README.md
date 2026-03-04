@@ -123,17 +123,23 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)
 Q: [batch, num_heads, seq_len, d_head]
 K: [batch, num_heads, seq_len, d_head]
 V: [batch, num_heads, seq_len, d_head]
-         │
-         ▼
-  scores = Q @ K^T / sqrt(d_head)
-         │        : [batch, num_heads, seq_len, seq_len]
-         ▼
-  attn_weights = softmax(scores, dim=-1)
-         │        : [batch, num_heads, seq_len, seq_len]
-         ▼
-  output = attn_weights @ V
-         │        : [batch, num_heads, seq_len, d_head]
-         ▼
+                          │
+                          ▼
+              scores = Q @ K^T / sqrt(d_head)
+                          │
+            [batch, num_heads, seq_len, seq_len]
+                          │
+                          ▼
+              attn_weights = softmax(scores, dim=-1)
+                          │
+            [batch, num_heads, seq_len, seq_len]
+                          │
+                          ▼
+                  output = attn_weights @ V
+                          │
+            [batch, num_heads, seq_len, d_head]
+                          │
+                          ▼
 输出: [batch, num_heads, seq_len, d_head]
 ```
 
@@ -157,31 +163,39 @@ $$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W^
 
 ```
 输入 x: [batch, seq_len, d_model]
-         │
-    ┌────┼────┐
-    ▼    ▼    ▼
-   W_q  W_k  W_v
-    │    │    │
-    ▼    ▼    ▼
-   Q    K    V      : [batch, seq_len, d_model]
-    │    │    │
-    ▼    ▼    ▼
- reshape reshape reshape
-    │    │    │
-    ▼    ▼    ▼
-   Q    K    V      : [batch, num_heads, seq_len, d_head]
-    │    │    │
-    └────┼────┘
-         ▼
-   Scaled Dot-Product Attention
-         │        : [batch, num_heads, seq_len, d_head]
-         ▼
-   reshape (concat heads)
-         │        : [batch, seq_len, d_model]
-         ▼
-      W_o (output projection)
-         │
-         ▼
+                          │
+    ┌─────────────────────┼─────────────────────────┐
+    ▼                     ▼                         ▼
+   W_q                   W_k                       W_v
+    │                     │                         │
+    ▼                     ▼                         ▼
+    Q                     K                         V
+    │                     │                         │
+    │          [batch, seq_len, d_model]            │
+    │                     │                         │
+    ▼                     ▼                         ▼
+ reshape               reshape                   reshape
+    │                     │                         │
+    ▼                     ▼                         ▼
+    Q                     K                         V
+    │                     │                         │
+    │       [batch, num_heads, seq_len, d_head]     │
+    │                     │                         │
+    └─────────────────────┼─────────────────────────┘
+                          ▼
+              Scaled Dot-Product Attention
+                          │
+             [batch, num_heads, seq_len, d_head]
+                          │
+                          ▼
+                  reshape (concat heads)
+                          │
+                [batch, seq_len, d_model]
+                          │
+                          ▼
+                   W_o (output projection)
+                          │
+                          ▼
 输出: [batch, seq_len, d_model]
 ```
 
@@ -215,29 +229,29 @@ V_expanded = repeat(V, num_heads // num_kv_heads)
 
 ```
 输入 x: [batch, seq_len, d_model]
-                          │
-    ┌─────────────────────┼─────────────────────────┐
-    ▼                     ▼                         ▼
-   W_q                   W_k                       W_v
-    │                     │                         │
-    ▼                     ▼                         ▼
-    Q                     K                         V
-    │                     │                         │
-[B,H,S,d_head]     [B,G,S,d_head]           [B,G,S,d_head]
-    │                     │                         │
-    │                     ▼                         ▼
-    │                 repeat_kv                 repeat_kv
-    │                     │                         │
-    │                     ▼                         ▼
-    │                   K_exp                     V_exp
-    │                     │                         │
-    │               [B,H,S,d_head]           [B,H,S,d_head]
-    │                     │                         │
-    └─────────────────────┼─────────────────────────┘
-                          ▼
-                      Attention
-                          │
-                          ▼
+                                        │
+        ┌───────────────────────────────┼───────────────────────────────────┐
+        ▼                               ▼                                   ▼
+       W_q                             W_k                                 W_v
+        │                               │                                   │
+        ▼                               ▼                                   ▼
+        Q                               K                                   V
+        │                               │                                   │
+[batch,num_heads,seq_len,d_head]  [batch,num_kv_heads,seq_len,d_head]  [batch,num_kv_heads,seq_len,d_head]
+        │                               │                                   │
+        │                               ▼                                   ▼
+        │                           repeat_kv                           repeat_kv
+        │                               │                                   │
+        │                               ▼                                   ▼
+        │                             K_exp                               V_exp
+        │                               │                                   │
+        │                      [batch,num_heads,seq_len,d_head]    [batch,num_heads,seq_len,d_head]
+        │                               │                                   │
+        └───────────────────────────────┼───────────────────────────────────┘
+                                        ▼
+                                    Attention
+                                        │
+                                        ▼
 输出: [batch, seq_len, d_model]
 ```
 
@@ -268,28 +282,28 @@ $$[k_{t}, v_{t}] = W_{UKV} \cdot c_{KV}$$
 
 ```
 输入 x: [batch, seq_len, d_model]
-         │
-    ┌────┴────┐
-    ▼         ▼
-  KV路径    Q路径
-    │         │
-    ▼         ▼
- kv_down    q_down
-    │         │
-    ▼         ▼
-[B,S,d_latent] [B,S,d_latent]  ← 压缩后的潜变量 (存入 KV Cache)
-    │         │
-    ▼         ▼
-  kv_up     q_up
-    │         │
-    ▼         ▼
-[K,V]      [Q, Q_rope]
-    │         │
-    └────┬────┘
-         ▼
-    RoPE + Attention
-         │
-         ▼
+                          │
+        ┌─────────────────┴─────────────────┐
+        ▼                                   ▼
+     KV路径                              Q路径
+        │                                   │
+        ▼                                   ▼
+    kv_down                              q_down
+        │                                   │
+        ▼                                   ▼
+[batch, seq_len, d_latent]          [batch, seq_len, d_latent]  ← 压缩后的潜变量 (存入 KV Cache)
+        │                                   │
+        ▼                                   ▼
+    kv_up                                 q_up
+        │                                   │
+        ▼                                   ▼
+     [K, V]                            [Q, Q_rope]
+        │                                   │
+        └─────────────────┬─────────────────┘
+                          ▼
+                    RoPE + Attention
+                          │
+                          ▼
 输出: [batch, seq_len, d_model]
 ```
 
