@@ -215,27 +215,29 @@ V_expanded = repeat(V, num_heads // num_kv_heads)
 
 ```
 输入 x: [batch, seq_len, d_model]
-         │
-    ┌────┼────────────┐
-    ▼    ▼            ▼
-   W_q  W_k          W_v
-    │    │            │
-    ▼    ▼            ▼
-   Q    K            V
-[B,H,S,d_head]  [B,G,S,d_head]  [B,G,S,d_head]
-    │    │            │
-    │    ▼            ▼
-    │  repeat_kv    repeat_kv
-    │    │            │
-    │    ▼            ▼
-    │  K_exp        V_exp
-    │[B,H,S,d_head][B,H,S,d_head]
-    │    │            │
-    └────┼────────────┘
-         ▼
-      Attention
-         │
-         ▼
+                          │
+    ┌─────────────────────┼─────────────────────────┐
+    ▼                     ▼                         ▼
+   W_q                   W_k                       W_v
+    │                     │                         │
+    ▼                     ▼                         ▼
+    Q                     K                         V
+    │                     │                         │
+[B,H,S,d_head]     [B,G,S,d_head]           [B,G,S,d_head]
+    │                     │                         │
+    │                     ▼                         ▼
+    │                 repeat_kv                 repeat_kv
+    │                     │                         │
+    │                     ▼                         ▼
+    │                   K_exp                     V_exp
+    │                     │                         │
+    │               [B,H,S,d_head]           [B,H,S,d_head]
+    │                     │                         │
+    └─────────────────────┼─────────────────────────┘
+                          ▼
+                      Attention
+                          │
+                          ▼
 输出: [batch, seq_len, d_model]
 ```
 
