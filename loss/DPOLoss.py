@@ -52,6 +52,6 @@ def dpo_loss(policy_chosen_logps, policy_rejected_logps,
     if label_smoothing > 0.0:
         # 标签平滑版本：混合正向和反向损失
         inverse_loss = -F.logsigmoid(-beta * logits).mean()
-        dpo_loss = (1 - label_smoothing) * dpo_loss - label_smoothing * inverse_loss
+        dpo_loss = (1 - label_smoothing) * dpo_loss + label_smoothing * inverse_loss
 
     return dpo_loss
