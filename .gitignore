@@ -36,6 +36,9 @@ env/
 # Jupyter Notebook
 .ipynb_checkpoints/
 
+# Local test files
+tests/
+
 # Model weights and data
 *.pt
 *.pth

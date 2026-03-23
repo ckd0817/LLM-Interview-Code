@@ -21,24 +21,24 @@ class RMSNorm(nn.Module):
     相比 LayerNorm，RMSNorm 不计算均值，计算量更小。
 
     Args:
-        dim: 归一化的维度（通常是 d_model）
+        model_dim: 归一化的维度（通常是 model_dim）
         eps: 数值稳定性常数，防止除零，默认 1e-8
     """
 
-    def __init__(self, dim, eps=1e-8):
+    def __init__(self, model_dim, eps=1e-8):
         super().__init__()
         self.eps = eps
-        self.gamma = nn.Parameter(torch.ones(dim))  # 可学习的缩放参数
+        self.gamma = nn.Parameter(torch.ones(model_dim))  # 可学习的缩放参数
 
     def _norm(self, x):
         """
         RMS 归一化核心计算
 
         Args:
-            x: 输入张量 [batch_size, seq_len, dim]
+            x: 输入张量 [batch_size, seq_len, model_dim]
 
         Returns:
-            归一化后的张量 [batch_size, seq_len, dim]
+            归一化后的张量 [batch_size, seq_len, model_dim]
         """
         # 计算均方值
         # mean_square: [batch_size, seq_len, 1]
@@ -56,12 +56,12 @@ class RMSNorm(nn.Module):
         前向传播
 
         Args:
-            x: 输入张量 [batch_size, seq_len, dim]
+            x: 输入张量 [batch_size, seq_len, model_dim]
 
         Returns:
-            归一化后的张量 [batch_size, seq_len, dim]
+            归一化后的张量 [batch_size, seq_len, model_dim]
         """
-        # x: [batch_size, seq_len, dim]
+        # x: [batch_size, seq_len, model_dim]
         normed_x = self._norm(x)
 
         # 恢复原始数据类型并应用缩放参数

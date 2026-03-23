@@ -22,42 +22,42 @@ class SwiGLUFFN(nn.Module):
     相比传统 FFN 的 ReLU 激活，SwiGLU 的门控机制可以更好地捕捉复杂的非线性关系。
 
     Args:
-        d_model: 输入/输出维度
-        intermediate_dim: 中间层维度（通常是 d_model 的 8/3 倍）
+        model_dim: 输入/输出维度
+        intermediate_dim: 中间层维度（通常是 model_dim 的 8/3 倍）
     """
 
-    def __init__(self, d_model, intermediate_dim):
+    def __init__(self, model_dim, intermediate_dim):
         super().__init__()
-        self.d_model = d_model
+        self.model_dim = model_dim
         self.intermediate_dim = intermediate_dim
 
         # 门控分支（使用 SiLU 激活）
-        self.w_gate = nn.Linear(d_model, intermediate_dim, bias=False)
+        self.w_gate = nn.Linear(model_dim, intermediate_dim, bias=False)
 
         # 上投影分支（无激活）
-        self.w_up = nn.Linear(d_model, intermediate_dim, bias=False)
+        self.w_up = nn.Linear(model_dim, intermediate_dim, bias=False)
 
         # 下投影（恢复到原始维度）
-        self.w_down = nn.Linear(intermediate_dim, d_model, bias=False)
+        self.w_down = nn.Linear(intermediate_dim, model_dim, bias=False)
 
     def forward(self, x):
         """
         前向传播
 
         Args:
-            x: 输入张量 [batch_size, seq_len, d_model]
+            x: 输入张量 [batch_size, seq_len, model_dim]
 
         Returns:
-            输出张量 [batch_size, seq_len, d_model]
+            输出张量 [batch_size, seq_len, model_dim]
         """
         # SwiGLU 公式: Down(SiLU(Gate(x)) * Up(x))
         #
         # 步骤1: 计算门控值（使用 SiLU 激活）
-        # gate: [batch_size, seq_len, d_model] -> [batch_size, seq_len, intermediate_dim]
+        # gate: [batch_size, seq_len, model_dim] -> [batch_size, seq_len, intermediate_dim]
         gate = F.silu(self.w_gate(x))
 
         # 步骤2: 计算上投影值（无激活）
-        # up: [batch_size, seq_len, d_model] -> [batch_size, seq_len, intermediate_dim]
+        # up: [batch_size, seq_len, model_dim] -> [batch_size, seq_len, intermediate_dim]
         up = self.w_up(x)
 
         # 步骤3: 门控相乘（GLU 机制）
@@ -65,7 +65,7 @@ class SwiGLUFFN(nn.Module):
         activated_feature = gate * up
 
         # 步骤4: 下投影恢复维度
-        # output: [batch_size, seq_len, intermediate_dim] -> [batch_size, seq_len, d_model]
+        # output: [batch_size, seq_len, intermediate_dim] -> [batch_size, seq_len, model_dim]
         output = self.w_down(activated_feature)
 
         return output

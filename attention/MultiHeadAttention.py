@@ -20,27 +20,27 @@ class MultiHeadAttention(nn.Module):
     - 交叉注意力：Q = x_query, K = V = x_context
 
     Args:
-        d_model: 模型隐藏维度
+        model_dim: 模型隐藏维度
         num_heads: 注意力头数
         dropout_p: Dropout 概率，默认 0.1
     """
 
-    def __init__(self, d_model, num_heads, dropout_p=0.1):
+    def __init__(self, model_dim, num_heads, dropout_p=0.1):
         super().__init__()
 
-        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
+        assert model_dim % num_heads == 0, "model_dim must be divisible by num_heads"
 
-        self.d_model = d_model
+        self.model_dim = model_dim
         self.num_heads = num_heads
-        self.head_dim = d_model // num_heads  # 每个头的维度
+        self.head_dim = model_dim // num_heads  # 每个头的维度
 
         # Q, K, V 投影层
-        self.w_q = nn.Linear(d_model, d_model)
-        self.w_k = nn.Linear(d_model, d_model)
-        self.w_v = nn.Linear(d_model, d_model)
+        self.w_q = nn.Linear(model_dim, model_dim)
+        self.w_k = nn.Linear(model_dim, model_dim)
+        self.w_v = nn.Linear(model_dim, model_dim)
 
         # 输出投影层
-        self.w_o = nn.Linear(d_model, d_model)
+        self.w_o = nn.Linear(model_dim, model_dim)
 
         self.dropout = nn.Dropout(dropout_p)
 
@@ -49,13 +49,13 @@ class MultiHeadAttention(nn.Module):
         前向传播
 
         Args:
-            x_query: 查询输入 [batch_size, seq_len_q, d_model]
-            x_context: 上下文输入（用于生成 K 和 V）[batch_size, seq_len_k, d_model]
+            x_query: 查询输入 [batch_size, seq_len_q, model_dim]
+            x_context: 上下文输入（用于生成 K 和 V）[batch_size, seq_len_k, model_dim]
                        如果为 None，则使用 x_query（自注意力）
             mask: 注意力掩码 [batch_size, 1, seq_len_q, seq_len_k] 或 [1, 1, seq_len_q, seq_len_k]
 
         Returns:
-            output: 注意力输出 [batch_size, seq_len_q, d_model]
+            output: 注意力输出 [batch_size, seq_len_q, model_dim]
         """
         batch_size = x_query.size(0)
 
@@ -72,7 +72,7 @@ class MultiHeadAttention(nn.Module):
             v = self.w_v(x_query)
 
         # ========== 分头处理 ==========
-        # [batch_size, seq_len, d_model] -> [batch_size, seq_len, num_heads, head_dim] -> [batch_size, num_heads, seq_len, head_dim]
+        # [batch_size, seq_len, model_dim] -> [batch_size, seq_len, num_heads, head_dim] -> [batch_size, num_heads, seq_len, head_dim]
         q = q.view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
         k = k.view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
         v = v.view(batch_size, -1, self.num_heads, self.head_dim).transpose(1, 2)
@@ -93,10 +93,10 @@ class MultiHeadAttention(nn.Module):
         context = torch.matmul(attn_weights, v)
 
         # ========== 合并多头 ==========
-        # [batch_size, num_heads, seq_len_q, head_dim] -> [batch_size, seq_len_q, num_heads, head_dim] -> [batch_size, seq_len_q, d_model]
+        # [batch_size, num_heads, seq_len_q, head_dim] -> [batch_size, seq_len_q, num_heads, head_dim] -> [batch_size, seq_len_q, model_dim]
         context = context.transpose(1, 2)
         context = context.contiguous()
-        output = context.view(batch_size, -1, self.d_model)
+        output = context.view(batch_size, -1, self.model_dim)
 
         # 输出投影
         output = self.w_o(output)
@@ -105,9 +105,9 @@ class MultiHeadAttention(nn.Module):
 
 
 if __name__ == "__main__":
-    # batch_size=2, seq_len=10, d_model=64, num_heads=8
+    # batch_size=2, seq_len=10, model_dim=64, num_heads=8
     x = torch.randn(2, 10, 64)
-    mha = MultiHeadAttention(d_model=64, num_heads=8)
+    mha = MultiHeadAttention(model_dim=64, num_heads=8)
     out = mha(x, x)  # Self-Attention: x_query=x, x_context=x
     print(f"Input shape: {x.shape}")
     print(f"Output shape: {out.shape}")  # 应该还是 (2, 10, 64)

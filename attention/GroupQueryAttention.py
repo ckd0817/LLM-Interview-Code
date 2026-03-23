@@ -27,34 +27,34 @@ class GroupQueryAttention(nn.Module):
     - 比 MQA 更好的性能，保持模型质量
 
     Args:
-        d_model: 模型隐藏维度
+        model_dim: 模型隐藏维度
         num_heads: 查询头数
         num_kv_heads: 键值头数（必须能整除 num_heads）
         dropout_p: Dropout 概率，默认 0.1
     """
 
-    def __init__(self, d_model, num_heads, num_kv_heads, dropout_p=0.1):
+    def __init__(self, model_dim, num_heads, num_kv_heads, dropout_p=0.1):
         super().__init__()
 
-        self.d_model = d_model
+        self.model_dim = model_dim
         self.num_heads = num_heads
         self.num_kv_heads = num_kv_heads
 
-        assert d_model % num_heads == 0, "d_model must be divisible by num_heads"
+        assert model_dim % num_heads == 0, "model_dim must be divisible by num_heads"
         assert num_heads % num_kv_heads == 0, "num_heads must be divisible by num_kv_heads"
 
-        self.head_dim = d_model // num_heads
+        self.head_dim = model_dim // num_heads
         self.num_rep = num_heads // num_kv_heads  # 每个 KV 头被复制的次数
 
         # Q 投影层：输出 num_heads 个头
-        self.w_q = nn.Linear(d_model, num_heads * self.head_dim, bias=False)
+        self.w_q = nn.Linear(model_dim, num_heads * self.head_dim, bias=False)
 
         # K, V 投影层：输出 num_kv_heads 个头
-        self.w_k = nn.Linear(d_model, num_kv_heads * self.head_dim, bias=False)
-        self.w_v = nn.Linear(d_model, num_kv_heads * self.head_dim, bias=False)
+        self.w_k = nn.Linear(model_dim, num_kv_heads * self.head_dim, bias=False)
+        self.w_v = nn.Linear(model_dim, num_kv_heads * self.head_dim, bias=False)
 
         # 输出投影层
-        self.w_o = nn.Linear(d_model, d_model)
+        self.w_o = nn.Linear(model_dim, model_dim)
         self.dropout = nn.Dropout(dropout_p)
 
     def repeat_kv(self, x, n_rep):
@@ -94,11 +94,11 @@ class GroupQueryAttention(nn.Module):
         前向传播
 
         Args:
-            x: 输入张量 [batch_size, seq_len, d_model]
+            x: 输入张量 [batch_size, seq_len, model_dim]
             mask: 注意力掩码 [batch_size, 1, seq_len, seq_len] 或 [1, 1, seq_len, seq_len]
 
         Returns:
-            output: 注意力输出 [batch_size, seq_len, d_model]
+            output: 注意力输出 [batch_size, seq_len, model_dim]
         """
         batch_size, seq_len, _ = x.shape
 
@@ -144,8 +144,8 @@ class GroupQueryAttention(nn.Module):
         context = context.transpose(1, 2)
         context = context.contiguous()
 
-        # [batch_size, seq_len, num_heads * head_dim] = [batch_size, seq_len, d_model]
-        output = context.view(batch_size, seq_len, self.d_model)
+        # [batch_size, seq_len, num_heads * head_dim] = [batch_size, seq_len, model_dim]
+        output = context.view(batch_size, seq_len, self.model_dim)
         output = self.w_o(output)
 
         return output

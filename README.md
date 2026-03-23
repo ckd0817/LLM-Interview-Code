@@ -120,12 +120,12 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)
 #### 张量形状流程图
 
 ```
-输入:    Q: [batch, num_heads, seq_len, d_head]
-         K: [batch, num_heads, seq_len, d_head]
-         V: [batch, num_heads, seq_len, d_head]
+输入:    Q: [batch, num_heads, seq_len, head_dim]
+         K: [batch, num_heads, seq_len, head_dim]
+         V: [batch, num_heads, seq_len, head_dim]
                           │
                           ▼
-              scores = Q @ K^T / sqrt(d_head)
+              scores = Q @ K^T / sqrt(head_dim)
                           │
             [batch, num_heads, seq_len, seq_len]
                           │
@@ -137,10 +137,10 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)
                           ▼
                   output = attn_weights @ V
                           │
-            [batch, num_heads, seq_len, d_head]
+            [batch, num_heads, seq_len, head_dim]
                           │
                           ▼
-输出:       [batch, num_heads, seq_len, d_head]
+输出:       [batch, num_heads, seq_len, head_dim]
 ```
 
 ---
@@ -162,7 +162,7 @@ $$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W^
 #### 张量形状流程图
 
 ```
-输入 x:        [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, model_dim]
                           │
     ┌─────────────────────┼─────────────────────────┐
     ▼                     ▼                         ▼
@@ -171,7 +171,7 @@ $$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W^
     ▼                     ▼                         ▼
     Q                     K                         V
     │                     │                         │
-    │          [batch, seq_len, d_model]            │
+    │          [batch, seq_len, model_dim]            │
     │                     │                         │
     ▼                     ▼                         ▼
  reshape               reshape                   reshape
@@ -179,24 +179,24 @@ $$\text{MultiHead}(Q, K, V) = \text{Concat}(\text{head}_1, ..., \text{head}_h)W^
     ▼                     ▼                         ▼
     Q                     K                         V
     │                     │                         │
-    │       [batch, num_heads, seq_len, d_head]     │
+    │       [batch, num_heads, seq_len, head_dim]     │
     │                     │                         │
     └─────────────────────┼─────────────────────────┘
                           ▼
               Scaled Dot-Product Attention
                           │
-             [batch, num_heads, seq_len, d_head]
+             [batch, num_heads, seq_len, head_dim]
                           │
                           ▼
                   reshape (concat heads)
                           │
-                [batch, seq_len, d_model]
+                [batch, seq_len, model_dim]
                           │
                           ▼
                    W_o (output projection)
                           │
                           ▼
-输出:          [batch, seq_len, d_model]
+输出:          [batch, seq_len, model_dim]
 ```
 
 ---
@@ -228,7 +228,7 @@ V_expanded = repeat(V, num_heads // num_kv_heads)
 #### 张量形状流程图
 
 ```
-输入 x:                       [batch, seq_len, d_model]
+输入 x:                       [batch, seq_len, model_dim]
                                         │
         ┌───────────────────────────────┼───────────────────────────────────┐
         ▼                               ▼                                   ▼
@@ -237,7 +237,7 @@ V_expanded = repeat(V, num_heads // num_kv_heads)
         ▼                               ▼                                   ▼
         Q                               K                                   V
         │                               │                                   │
-[batch,num_heads,seq_len,d_head]  [batch,num_kv_heads,seq_len,d_head]  [batch,num_kv_heads,seq_len,d_head]
+[batch,num_heads,seq_len,head_dim]  [batch,num_kv_heads,seq_len,head_dim] [batch,num_kv_heads,seq_len,head_dim]
         │                               │                                   │
         │                               ▼                                   ▼
         │                           repeat_kv                           repeat_kv
@@ -245,14 +245,14 @@ V_expanded = repeat(V, num_heads // num_kv_heads)
         │                               ▼                                   ▼
         │                             K_exp                               V_exp
         │                               │                                   │
-        │                      [batch,num_heads,seq_len,d_head]    [batch,num_heads,seq_len,d_head]
+        │                      [batch,num_heads,seq_len,head_dim]    [batch,num_heads,seq_len,head_dim]
         │                               │                                   │
         └───────────────────────────────┼───────────────────────────────────┘
                                         ▼
                                     Attention
                                         │
                                         ▼
-输出:                         [batch, seq_len, d_model]
+输出:                         [batch, seq_len, model_dim]
 ```
 
 ---
@@ -281,7 +281,7 @@ $$[k_{t}, v_{t}] = W_{UKV} \cdot c_{KV}$$
 #### 张量形状流程图
 
 ```
-输入 x:        [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, model_dim]
                           │
         ┌─────────────────┴─────────────────┐
         ▼                                   ▼
@@ -291,7 +291,7 @@ $$[k_{t}, v_{t}] = W_{UKV} \cdot c_{KV}$$
     kv_down                              q_down
         │                                   │
         ▼                                   ▼
-[batch, seq_len, d_latent]          [batch, seq_len, d_latent]  ← 压缩后的潜变量 (存入 KV Cache)
+[batch, seq_len, latent_dim]          [batch, seq_len, latent_dim]  ← 压缩后的潜变量 (存入 KV Cache)
         │                                   │
         ▼                                   ▼
     kv_up                                 q_up
@@ -304,7 +304,7 @@ $$[k_{t}, v_{t}] = W_{UKV} \cdot c_{KV}$$
                     RoPE + Attention
                           │
                           ▼
-输出:          [batch, seq_len, d_model]
+输出:          [batch, seq_len, model_dim]
 ```
 
 ---
@@ -329,7 +329,7 @@ $$\text{LN}(x) = \gamma \cdot \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta
 #### 张量形状流程图
 
 ```
-输入 x:        [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, model_dim]
                           │
                           ▼
                    mean(x, dim=-1)
@@ -344,13 +344,13 @@ $$\text{LN}(x) = \gamma \cdot \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}} + \beta
                           ▼
           (x - mean) / sqrt(var + eps)
                           │
-             [batch, seq_len, d_model]
+             [batch, seq_len, model_dim]
                           │
                           ▼
                   x * gamma + beta
                           │
                           ▼
-输出:          [batch, seq_len, d_model]
+输出:          [batch, seq_len, model_dim]
 ```
 
 ---
@@ -373,7 +373,7 @@ $$\text{RMSNorm}(x) = \gamma \cdot \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^{d} x_i^
 #### 张量形状流程图
 
 ```
-输入 x:        [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, model_dim]
                           │
                           ▼
           rms = sqrt(mean(x^2, dim=-1) + eps)
@@ -381,13 +381,13 @@ $$\text{RMSNorm}(x) = \gamma \cdot \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^{d} x_i^
                           │
                           ▼
                        x / rms
-             [batch, seq_len, d_model]
+             [batch, seq_len, model_dim]
                           │
                           ▼
                      x * gamma
                           │
                           ▼
-输出:          [batch, seq_len, d_model]
+输出:          [batch, seq_len, model_dim]
 ```
 
 ---
@@ -441,14 +441,14 @@ x' = x * cos + rotate_half(x) * sin
 #### 张量形状流程图
 
 ```
-输入 Q, K: [batch, seq_len, num_heads, d_head]
+输入 Q, K: [batch, seq_len, num_heads, head_dim]
                           │
                           ▼
-             预计算 cos, sin: [max_seq_len, d_head]
+             预计算 cos, sin: [max_seq_len, head_dim]
                           │
                           ▼
           取当前序列长度: cos[:seq_len], sin[:seq_len]
-             [1, seq_len, 1, d_head]
+             [1, seq_len, 1, head_dim]
                           │
                           ▼
               rotate_half(Q) = [-Q后半, Q前半]
@@ -458,7 +458,7 @@ x' = x * cos + rotate_half(x) * sin
           K_rotated = K * cos + rotate_half(K) * sin
                           │
                           ▼
-输出: [batch, seq_len, num_heads, d_head]
+输出: [batch, seq_len, num_heads, head_dim]
 ```
 
 ---
@@ -480,12 +480,12 @@ $$\text{FFN}(x) = W_2 \cdot \text{ReLU}(W_1 x)$$
 #### 张量形状流程图
 
 ```
-输入 x:        [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, model_dim]
                           │
                           ▼
                   W_1 (up projection)
                           │
-             [batch, seq_len, 4*d_model]
+             [batch, seq_len, 4*model_dim]
                           │
                           ▼
                         ReLU
@@ -494,7 +494,7 @@ $$\text{FFN}(x) = W_2 \cdot \text{ReLU}(W_1 x)$$
                 W_2 (down projection)
                           │
                           ▼
-输出:          [batch, seq_len, d_model]
+输出:          [batch, seq_len, model_dim]
 ```
 
 ---
@@ -518,7 +518,7 @@ $$\text{SwiGLU}(x) = (W_{gate}(x) \odot \text{SiLU}(W_{up}(x))) \cdot W_{down}$$
 #### 张量形状流程图
 
 ```
-输入 x:        [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, model_dim]
                           │
         ┌─────────────────┴─────────────────┐
         ▼                                   ▼
@@ -541,7 +541,7 @@ $$\text{SwiGLU}(x) = (W_{gate}(x) \odot \text{SiLU}(W_{up}(x))) \cdot W_{down}$$
                        W_down
                           │
                           ▼
-输出:          [batch, seq_len, d_model]
+输出:          [batch, seq_len, model_dim]
 ```
 
 ---
@@ -566,10 +566,10 @@ $$\text{MoE}(x) = \sum_{i \in \text{TopK}} \text{softmax}(\text{router}(x))_i \c
 #### 张量形状流程图
 
 ```
-输入 x:        [batch, seq_len, d_model]
+输入 x:        [batch, seq_len, model_dim]
                           │
                           ▼
-            flatten: [batch*seq_len, d_model]
+            flatten: [batch*seq_len, model_dim]
                           │
         ┌─────────────────┴─────────────────┐
         ▼                                   ▼
@@ -594,7 +594,7 @@ $$\text{MoE}(x) = \sum_{i \in \text{TopK}} \text{softmax}(\text{router}(x))_i \c
                 weighted sum (按路由权重累加)
                           │
                           ▼
-输出     reshape: [batch, seq_len, d_model]
+输出     reshape: [batch, seq_len, model_dim]
 ```
 
 ---
@@ -819,3 +819,4 @@ $$h = W_0 x + \Delta W x = W_0 x + BAx$$
 - [LoRA: Low-Rank Adaptation](https://arxiv.org/abs/2106.09685)
 
 ---
+

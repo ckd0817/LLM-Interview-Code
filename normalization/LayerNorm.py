@@ -18,27 +18,27 @@ class LayerNorm(nn.Module):
     公式: LayerNorm(x) = (x - mean) / sqrt(var + eps) * gamma + beta
 
     Args:
-        d_model: 归一化的特征维度
+        model_dim: 归一化的特征维度
         eps: 数值稳定性常数，防止除零，默认 1e-5
     """
 
-    def __init__(self, d_model, eps=1e-5):
+    def __init__(self, model_dim, eps=1e-5):
         super().__init__()
         self.eps = eps
-        self.gamma = nn.Parameter(torch.ones(d_model))   # 可学习的缩放参数
-        self.beta = nn.Parameter(torch.zeros(d_model))   # 可学习的偏移参数
+        self.gamma = nn.Parameter(torch.ones(model_dim))   # 可学习的缩放参数
+        self.beta = nn.Parameter(torch.zeros(model_dim))   # 可学习的偏移参数
 
     def forward(self, x):
         """
         前向传播
 
         Args:
-            x: 输入张量 [batch_size, seq_len, d_model]
+            x: 输入张量 [batch_size, seq_len, model_dim]
 
         Returns:
-            归一化后的张量 [batch_size, seq_len, d_model]
+            归一化后的张量 [batch_size, seq_len, model_dim]
         """
-        # x: [batch_size, seq_len, d_model]
+        # x: [batch_size, seq_len, model_dim]
 
         # 计算均值
         # mean: [batch_size, seq_len, 1]
@@ -51,7 +51,7 @@ class LayerNorm(nn.Module):
         var = x.var(-1, keepdim=True, unbiased=False)
 
         # 归一化：零均值、单位方差
-        # x_normalized: [batch_size, seq_len, d_model]
+        # x_normalized: [batch_size, seq_len, model_dim]
         x_normalized = (x - mean) / torch.sqrt(var + self.eps)
 
         # 应用可学习的仿射变换
