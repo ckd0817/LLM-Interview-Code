@@ -30,10 +30,10 @@ class MultiLatentAttention(nn.Module):
         head_dim: 每个注意力头的维度
         latent_dim: 潜在空间维度（压缩后的维度）
         rope_dim: RoPE 旋转位置编码维度
-        dropout_p: Dropout 概率
+        dropout_p: Dropout 概率，默认 0.0
     """
 
-    def __init__(self, model_dim, num_heads, head_dim, latent_dim, rope_dim, dropout_p):
+    def __init__(self, model_dim, num_heads, head_dim, latent_dim, rope_dim, dropout_p=0.0):
         super().__init__()
         assert model_dim % num_heads == 0, "model_dim must be divisible by num_heads"
 
@@ -53,6 +53,8 @@ class MultiLatentAttention(nn.Module):
 
         # 3. 输出投影
         self.o_proj = nn.Linear(num_heads * head_dim, model_dim, bias=False)
+
+        self.dropout = nn.Dropout(dropout_p)
 
         # 4. RoPE 旋转位置编码
         self.rope = RotaryEmbedding(head_dim=rope_dim)
@@ -121,6 +123,7 @@ class MultiLatentAttention(nn.Module):
 
         # attn_weights: [batch_size, num_heads, seq_len, seq_len]
         attn_weights = F.softmax(scores, dim=-1)
+        attn_weights = self.dropout(attn_weights)
 
         # context: [batch_size, num_heads, seq_len, head_dim]
         context = torch.matmul(attn_weights, v)

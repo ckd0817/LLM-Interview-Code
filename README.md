@@ -100,6 +100,10 @@ LLM-Interview-Code/
 
 ## 注意力机制
 
+> **实现说明**
+> 本仓库里的注意力模块默认使用 `dropout_p=0.0`，更贴近近两年主流 decoder-only LLM 的常见配置。
+> 如果你是为了讲解经典 Transformer 正则化，或者在小数据训练中想显式增加随机性，可以手动传入非零 dropout。
+
 ### Scaled Dot-Product Attention
 
 #### 背景与动机

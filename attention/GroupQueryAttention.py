@@ -30,10 +30,10 @@ class GroupQueryAttention(nn.Module):
         model_dim: 模型隐藏维度
         num_heads: 查询头数
         num_kv_heads: 键值头数（必须能整除 num_heads）
-        dropout_p: Dropout 概率，默认 0.1
+        dropout_p: Dropout 概率，默认 0.0
     """
 
-    def __init__(self, model_dim, num_heads, num_kv_heads, dropout_p=0.1):
+    def __init__(self, model_dim, num_heads, num_kv_heads, dropout_p=0.0):
         super().__init__()
 
         self.model_dim = model_dim

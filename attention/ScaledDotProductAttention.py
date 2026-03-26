@@ -55,6 +55,8 @@ class ScaledDotProductAttention(nn.Module):
         # attn_weights: [batch_size, num_heads, seq_len_q, seq_len_k]
         attn_weights = F.softmax(scores, dim=-1)
 
+        attn_weights = self.dropout(attn_weights)
+
         # 步骤4: 加权求和
         # output: [batch_size, num_heads, seq_len_q, head_dim]
         output = torch.matmul(attn_weights, v)

@@ -22,10 +22,10 @@ class MultiHeadAttention(nn.Module):
     Args:
         model_dim: 模型隐藏维度
         num_heads: 注意力头数
-        dropout_p: Dropout 概率，默认 0.1
+        dropout_p: Dropout 概率，默认 0.0
     """
 
-    def __init__(self, model_dim, num_heads, dropout_p=0.1):
+    def __init__(self, model_dim, num_heads, dropout_p=0.0):
         super().__init__()
 
         assert model_dim % num_heads == 0, "model_dim must be divisible by num_heads"
