@@ -352,7 +352,7 @@ flowchart TD
 
 对于位置 $m$ 的向量 $x$，RoPE 将其旋转：
 
-$$
+```math
 \begin{bmatrix}
 x_1' \\
 x_2'
@@ -367,7 +367,7 @@ x_2'
 x_1 \\
 x_2
 \end{bmatrix}
-$$
+```
 
 展开形式：
 
