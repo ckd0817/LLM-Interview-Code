@@ -263,6 +263,11 @@ V_expanded = repeat(V, num_heads // num_kv_heads)
 
 ### Multi-Latent Attention
 
+> **实现说明**
+> `MultiLatentAttention.py` 是用于讲解核心张量变换的简化版 MLA：保留 Q/KV
+> 低秩投影与 RoPE 注意力主线，但未实现原论文中的共享解耦 RoPE Key、
+> 投影吸收和增量 KV Cache 接口。
+
 #### 背景与动机
 
 多潜变量注意力（Multi-Latent Attention, MLA）由 DeepSeek-V2 提出，通过将 KV 压缩到低维潜空间来大幅减少 KV Cache。与 GQA 不同，MLA 不是通过减少头数，而是通过降维压缩来实现内存节省。
@@ -295,7 +300,8 @@ $$[k_{t}, v_{t}] = W_{UKV} \cdot c_{KV}$$
     kv_down                              q_down
         │                                   │
         ▼                                   ▼
-[batch, seq_len, latent_dim]          [batch, seq_len, latent_dim]  ← 压缩后的潜变量 (存入 KV Cache)
+[batch, seq_len, latent_dim]          [batch, seq_len, latent_dim]
+      ↑ 存入 KV Cache                       ↑ 仅用于当前 Query
         │                                   │
         ▼                                   ▼
     kv_up                                 q_up
@@ -757,11 +763,11 @@ $$h = W_0 x + \Delta W x = W_0 x + BAx$$
 
 其中：
 - $W_0 \in \mathbb{R}^{d \times k}$：冻结的预训练权重
-- $B \in \mathbb{R}^{d \times r}$：可训练，初始化为随机值
-- $A \in \mathbb{R}^{r \times k}$：可训练，初始化为零
+- $A \in \mathbb{R}^{r \times k}$：可训练，使用随机初始化
+- $B \in \mathbb{R}^{d \times r}$：可训练，初始化为零
 - $r \ll \min(d, k)$：低秩维度
 
-**关键设计**：$A$ 初始化为零，使得初始状态 $BA = 0$，保证微调开始时模型行为不变。
+**关键设计**：$B$ 初始化为零，使得初始状态 $BA = 0$，保证微调开始时模型行为不变。
 
 #### 张量形状流程图
 
@@ -776,10 +782,10 @@ $$h = W_0 x + \Delta W x = W_0 x + BAx$$
         │                               Dropout
         │                                   │
         │                                   ▼
-        │                           lora_A: [in_features, rank]
+        │                           lora_A: [rank, in_features]
         │                                   │
         │                                   ▼
-        │                           lora_B: [rank, out_features]
+        │                           lora_B: [out_features, rank]
         │                                   │
         │                                   ▼
         │                           * scaling (α/r)

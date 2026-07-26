@@ -45,7 +45,7 @@ class FFN(nn.Module):
         Returns:
             输出张量 [batch_size, seq_len, model_dim]
         """
-        # FFN 公式: ReLU(W_up(x)) * W_down(x)
+        # FFN 公式: W_down(ReLU(W_up(x)))
         #
         # 步骤1: 上投影并应用 ReLU 激活
         # up: [batch_size, seq_len, model_dim] -> [batch_size, seq_len, intermediate_dim]

@@ -26,6 +26,9 @@ class RotaryEmbedding(nn.Module):
 
     def __init__(self, head_dim, max_seq_len=2048, theta=10000.0):
         super().__init__()
+        if head_dim <= 0 or head_dim % 2 != 0:
+            raise ValueError("head_dim must be a positive even integer")
+
         self.head_dim = head_dim
         self.max_seq_len = max_seq_len
         self.theta = theta
@@ -109,7 +112,7 @@ class RotaryEmbedding(nn.Module):
         # rotate_half(x) * sin = [-x2*sin, x1*sin]
         # 结果 = [x1*cos - x2*sin, x2*cos + x1*sin]
         #
-        # 等价于旋转矩阵: [cos, sin; -sin, cos] @ [x1; x2] = [x1'; x2']
+        # 等价于旋转矩阵: [cos, -sin; sin, cos] @ [x1; x2] = [x1'; x2']
 
         xq_rotated = (xq * cos) + (rotate_half(xq) * sin)
         xk_rotated = (xk * cos) + (rotate_half(xk) * sin)

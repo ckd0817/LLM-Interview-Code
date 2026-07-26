@@ -4,6 +4,10 @@
 DeepSeek 提出的高效注意力机制，通过低秩压缩 KV 缓存来减少显存占用。
 核心思想：将 KV 压缩到潜在空间，推理时只需缓存潜在向量。
 
+教学说明：本文件实现的是 MLA 的简化版本，重点演示 Q/KV 低秩投影和
+RoPE 注意力的主干流程，未实现原论文中的共享解耦 RoPE Key、投影吸收
+以及增量 KV Cache 接口。
+
 参考论文: DeepSeek-V2: A Strong, Economical, and Efficient Mixture-of-Experts Language Model
 """
 
@@ -19,10 +23,13 @@ from position.RotaryEmbedding import RotaryEmbedding
 
 class MultiLatentAttention(nn.Module):
     """
-    多头潜在注意力模块
+    简化版多头潜在注意力模块
 
     通过低秩投影将 Q 和 KV 压缩到潜在空间，显著减少 KV 缓存的显存占用。
     同时结合 RoPE 位置编码保持位置感知能力。
+
+    注意：这里为了突出核心张量变换，为每个头生成 RoPE Key。DeepSeek-V2
+    原始 MLA 使用共享的解耦 RoPE Key，并包含适合增量推理的缓存设计。
 
     Args:
         model_dim: 模型隐藏维度

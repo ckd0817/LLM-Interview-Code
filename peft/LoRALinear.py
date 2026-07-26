@@ -38,11 +38,11 @@ class LoRALinear(nn.Module):
 
         # 原始预训练权重（冻结）
         self.weight = nn.Linear(in_features, out_features, bias=False)
-        self.weight.requires_grad = False  # 冻结原始权重
+        self.weight.requires_grad_(False)  # 冻结原始权重参数
 
         # LoRA 低秩适应矩阵
-        # A: [in_features, rank] - 下投影
-        # B: [rank, out_features] - 上投影
+        # A.weight: [rank, in_features] - 下投影
+        # B.weight: [out_features, rank] - 上投影
         self.lora_a = nn.Linear(in_features, rank, bias=False)
         self.lora_b = nn.Linear(rank, out_features, bias=False)
 
@@ -81,10 +81,11 @@ class LoRALinear(nn.Module):
         Returns:
             输出张量 [batch_size, seq_len, out_features]
         """
-        # 步骤1: 计算原始输出（不计算梯度）
+        # 步骤1: 计算原始输出
+        # 原始权重已冻结，因此不会产生权重梯度；但仍保留对输入 x 的梯度，
+        # 使前面层中的可训练 LoRA 参数能够正常接收反向传播信号。
         # original_output: [batch_size, seq_len, out_features]
-        with torch.no_grad():
-            original_output = self.weight(x)
+        original_output = self.weight(x)
 
         # 步骤2: 计算 LoRA 增量输出
         # x -> dropout -> A -> B -> scaling
