@@ -25,6 +25,7 @@
   - [SwiGLU](#swiglu)
   - [Mixture of Experts](#mixture-of-experts)
 - [损失函数](#损失函数)
+  - [Pretrain Loss](#pretrain-loss)
   - [SFT Loss](#sft-loss)
   - [DPO Loss](#dpo-loss)
   - [PPO Loss](#ppo-loss)
@@ -41,7 +42,7 @@
 - **归一化层**：LayerNorm、RMSNorm
 - **位置编码**：RoPE 旋转位置编码
 - **前馈网络**：FFN、SwiGLU、MoE
-- **损失函数**：SFT、DPO、PPO、GRPO 等训练损失
+- **损失函数**：Pretrain、SFT、DPO、PPO、GRPO 等训练损失
 - **参数高效微调**：LoRA
 
 **项目特色**：
@@ -351,12 +352,22 @@ flowchart TD
 
 对于位置 $m$ 的向量 $x$，RoPE 将其旋转：
 
-```
-┌       ┐   ┌                      ┐   ┌     ┐
-│ x₁'   │   │ cos(mθ)   -sin(mθ)   │   │ x₁  │
-│ x₂'   │ = │ sin(mθ)    cos(mθ)   │ · │ x₂  │
-└       ┘   └                      ┘   └     ┘
-```
+$$
+\begin{bmatrix}
+x_1' \\
+x_2'
+\end{bmatrix}
+=
+\begin{bmatrix}
+\cos(m\theta) & -\sin(m\theta) \\
+\sin(m\theta) & \cos(m\theta)
+\end{bmatrix}
+\cdot
+\begin{bmatrix}
+x_1 \\
+x_2
+\end{bmatrix}
+$$
 
 展开形式：
 
@@ -498,13 +509,47 @@ flowchart TD
 
 ## 损失函数
 
+### Pretrain Loss
+
+#### 背景与动机
+
+预训练损失（Pretrain Loss）是因果语言模型最基础的训练目标：给定当前位置之前的 token，预测下一个 token。除 padding 等需要忽略的位置外，序列中的所有 token 都参与损失计算。
+
+这是所有 LLM 训练的基础，理解它是学习 SFT、DPO、PPO 等训练方法的前提。
+
+#### 核心公式
+
+$$\mathcal{L}_{\text{Pretrain}} = -\sum_{t=2}^{T} \log P(x_t \mid x_{<t})$$
+
+#### 张量形状流程图
+
+```mermaid
+flowchart TD
+    Logits["logits: [batch, seq_len, vocab_size]"] --> Shift
+    Labels["labels: [batch, seq_len]"] --> Shift
+    Shift["Shift (自回归预测)<br/>logits[:, :-1, :]<br/>labels[:, 1:]"]
+    Shift --> Flatten["Flatten<br/>[batch*(seq_len-1), vocab_size]<br/>[batch*(seq_len-1)]"]
+    Flatten --> Loss["CrossEntropy<br/>ignore_index = -100"]
+    Loss --> Output["loss: scalar"]
+```
+
+---
+
 ### SFT Loss
 
 #### 背景与动机
 
 监督微调（Supervised Fine-Tuning, SFT）损失是带 prompt 掩码的交叉熵损失。在指令微调中，通常只计算 response 部分的损失，不计算 prompt 部分。
 
-这是所有 LLM 训练的基础，理解它是学习 DPO、PPO 的前提。
+如果只看损失函数的实现，SFT Loss 与 Pretrain Loss 的 next-token Cross Entropy 完全相同，唯一的实质差异是 **mask**：
+
+| | Pretrain Loss | SFT Loss |
+|---|---|---|
+| 参与损失的 token | 所有未被忽略的 token | 仅 response token |
+| prompt label | 正常参与损失 | 设为 `-100`，不参与损失 |
+| Shift + CrossEntropy | 相同 | 相同 |
+
+两者的训练阶段和数据形式不同，但损失计算的主干没有变化。
 
 #### 核心公式
 
@@ -520,7 +565,7 @@ flowchart TD
     Labels["labels: [batch, seq_len]"] --> Mask
     PromptLengths["prompt_lengths: [batch]"] --> Mask
     Mask["构造 masked_labels<br/>prompt 部分设为 -100"]
-    Mask --> Shift["Shift (自回归预测)<br/>logits[:, :-1]<br/>labels[:, 1:]"]
+    Mask --> Shift["Shift (自回归预测)<br/>logits[:, :-1, :]<br/>masked_labels[:, 1:]"]
     Shift --> Loss["Flatten + CrossEntropy<br/>ignore_index = -100"]
     Loss --> Output["loss: scalar"]
 ```
